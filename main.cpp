@@ -11,6 +11,9 @@ int main(void)
     const int screenWidth = 960;
     const int screenHeight = 720;
 
+    // second * FPS
+    const int reloadSecond = 3 * 60;
+
     SetConfigFlags(FLAG_MSAA_4X_HINT);  // NOTE: Try to enable MSAA 4X
 
     InitWindow(screenWidth, screenHeight, "Some Game");
@@ -27,8 +30,10 @@ int main(void)
     bool isShoot {false};
 
     // Bullet
-    std::array<Vector2, 10> bulletList {};
+    const int maxBulletList {20};
+    std::array<Vector2, maxBulletList> bulletList {};
     int reload {};
+    int reloadTime {};
     int bulletSpeed {20};
 
     Music music = LoadMusicStream("res/audio/mini1111.xm");
@@ -53,7 +58,8 @@ int main(void)
         // Get player Input
         movementInput.x = moveHorizontal;
         movementInput.y = moveVertical;
-        isShoot = IsKeyDown(KEY_E);
+        // FIXME: when pressed <w-d> or <s-d> can't shoot
+        isShoot = IsKeyPressed(KEY_E) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
         // Normalize the Input Vector2
         if (std::abs(movementInput.x) + std::abs(movementInput.y) == 2)
@@ -70,37 +76,45 @@ int main(void)
         player.y = Clamp(player.y, 0, static_cast<float>(GetScreenHeight() - player.height));
 
         // instance the bullet
-        if (isShoot && reload < 10)
+        if (isShoot && reload < maxBulletList)
         {
             bulletList[reload] = {player.x + player.width / 2, player.y + player.height / 2};
+            reload++;
         }
 
         // Caculate bullet coordinates
         for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
         {
-//             if (bulletList[iii].x == 0 && bulletList[iii].y == 0) continue;
-            bulletList[iii].x += bulletSpeed;
-            if (bulletList[iii].x > static_cast<float>(GetScreenWidth())) bulletList[iii] = {0, 0};
+            if (bulletList[iii].x == 0 && bulletList[iii].y == 0)
+            {
+
+            } else {
+                bulletList[iii].x += bulletSpeed;
+                if (bulletList[iii].x > static_cast<float>(GetScreenWidth())) bulletList[iii] = {0, 0};
+            }
         }
 
-        // Reload the index of bulletList to reuse after 6 second
-        if (reload == 360) reload = 0;
-        else reload++;
+        // Reload the index of bulletList to reuse after 20 second
+        if (reloadTime == reloadSecond)
+        {
+            reload = 0;
+            reloadTime = 0;
+        }
+        else reloadTime++;
 
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-            ClearBackground(RAYWHITE);
+            ClearBackground(BLACK);
 
             DrawRectangle(player.x, player.y, player.width, player.height, BLUE);
 
-            // TODO: make new bullet and add it to bullet group
-            // FIXME: I have no idea what the is the bullet doing
+            // Draw bullet
             for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
             {
-                if ((bulletList[iii].x == 0 && bulletList[iii].y == 0))
-                DrawRectangle(bulletList[iii].x, bulletList[iii].y, 100, 50, RED);
+                if (!(bulletList[iii].x == 0 && bulletList[iii].y == 0))
+                DrawRectangle(bulletList[iii].x, bulletList[iii].y, 20, 10, RED);
             }
 
             DrawFPS(10, 10);
