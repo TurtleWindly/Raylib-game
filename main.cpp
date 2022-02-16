@@ -58,7 +58,9 @@ int main(void)
             player.x += movementInput.x * playerSpeed;
             player.y += movementInput.y * playerSpeed;
         }
-        
+        // Clamp in screen
+        player.x = Clamp(player.x, 0, static_cast<float>(GetScreenWidth() - player.width));
+        player.y = Clamp(player.y, 0, static_cast<float>(GetScreenHeight() - player.height));
 
 
         // Draw
