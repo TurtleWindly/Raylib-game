@@ -1,6 +1,8 @@
 #include <cmath>
 #include "raylib.h"
 #include "raymath.h"
+#include <array>
+#include <cassert>
 
 int main(void)
 {
@@ -22,7 +24,12 @@ int main(void)
 
     int moveHorizontal {};
     int moveVertical {};
-    bool shoot {false};
+    bool isShoot {false};
+
+    // Bullet
+    std::array<Vector2, 10> bulletList {};
+    int reload {};
+    int bulletSpeed {20};
 
     Music music = LoadMusicStream("res/audio/mini1111.xm");
     music.looping = false;
@@ -46,7 +53,7 @@ int main(void)
         // Get player Input
         movementInput.x = moveHorizontal;
         movementInput.y = moveVertical;
-        shoot = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+        isShoot = IsKeyDown(KEY_E);
 
         // Normalize the Input Vector2
         if (std::abs(movementInput.x) + std::abs(movementInput.y) == 2)
@@ -62,6 +69,23 @@ int main(void)
         player.x = Clamp(player.x, 0, static_cast<float>(GetScreenWidth() - player.width));
         player.y = Clamp(player.y, 0, static_cast<float>(GetScreenHeight() - player.height));
 
+        // instance the bullet
+        if (isShoot && reload < 10)
+        {
+            bulletList[reload] = {player.x + player.width / 2, player.y + player.height / 2};
+        }
+
+        // Caculate bullet coordinates
+        for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
+        {
+//             if (bulletList[iii].x == 0 && bulletList[iii].y == 0) continue;
+            bulletList[iii].x += bulletSpeed;
+            if (bulletList[iii].x > static_cast<float>(GetScreenWidth())) bulletList[iii] = {0, 0};
+        }
+
+        // Reload the index of bulletList to reuse after 6 second
+        if (reload == 360) reload = 0;
+        else reload++;
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -71,12 +95,13 @@ int main(void)
 
             DrawRectangle(player.x, player.y, player.width, player.height, BLUE);
 
-            // TODO: Create bullet that shoot to mouse direction
-            if (shoot)
+            // TODO: make new bullet and add it to bullet group
+            // FIXME: I have no idea what the is the bullet doing
+            for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
             {
-                DrawCircle(player.x, player.y, 5.0f, RED);
+                if ((bulletList[iii].x == 0 && bulletList[iii].y == 0))
+                DrawRectangle(bulletList[iii].x, bulletList[iii].y, 100, 50, RED);
             }
-
 
             DrawFPS(10, 10);
 
