@@ -11,16 +11,14 @@ int main(void)
     const int screenWidth = 960;
     const int screenHeight = 720;
 
-    // second * FPS
-    const int reloadSecond = 3 * 60;
-
     SetConfigFlags(FLAG_MSAA_4X_HINT);  // NOTE: Try to enable MSAA 4X
 
-    InitWindow(screenWidth, screenHeight, "Some Game");
+    InitWindow(screenWidth, screenHeight, "Space Invader");
 
     InitAudioDevice();                  // Initialize audio device
 
-    Rectangle player {static_cast<float>(screenWidth/2) - 100, static_cast<float>(screenHeight/2) - 100, 50, 50};
+    // Player
+    Rectangle player {static_cast<float>(screenWidth/2) - 100, static_cast<float>(screenHeight/2) - 100, 25, 25};
     float playerSpeed {7.0f};
 
     Vector2 movementInput {};
@@ -35,7 +33,19 @@ int main(void)
     int reload {};
     int reloadTime {};
     int bulletSpeed {20};
+    // second * FPS
+    const int reloadSecond = 3 * 60;
 
+    //asteroid
+    const int maxAsteroid {200};
+    std::array<Vector2, maxAsteroid> asteroidList {};
+    int reloadAsteroid {};
+    int asteroidSpeed {5};
+    // 60 mean around 1 second
+    const int spawnSecond {30};
+    int spawnTime {spawnSecond};
+
+    // Music
     Music music = LoadMusicStream("res/audio/mini1111.xm");
     music.looping = false;
 
@@ -58,7 +68,6 @@ int main(void)
         // Get player Input
         movementInput.x = moveHorizontal;
         movementInput.y = moveVertical;
-        // FIXME: when pressed <w-d> or <s-d> can't shoot
         isShoot = IsKeyPressed(KEY_E) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
         // Normalize the Input Vector2
@@ -85,22 +94,48 @@ int main(void)
         // Caculate bullet coordinates
         for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
         {
-            if (bulletList[iii].x == 0 && bulletList[iii].y == 0)
-            {
-
-            } else {
-                bulletList[iii].x += bulletSpeed;
-                if (bulletList[iii].x > static_cast<float>(GetScreenWidth())) bulletList[iii] = {0, 0};
-            }
+            if (bulletList[iii].x == 0 && bulletList[iii].y == 0) continue;
+            bulletList[iii].x += bulletSpeed;
+            if (bulletList[iii].x > static_cast<float>(GetScreenWidth())) bulletList[iii] = {0, 0};
         }
 
-        // Reload the index of bulletList to reuse after 20 second
+        // Reload the index of bulletList to reuse
         if (reloadTime == reloadSecond)
         {
             reload = 0;
             reloadTime = 0;
         }
         else reloadTime++;
+
+        // asteroid
+        // instance asteroid
+        if (spawnTime == 0 && reloadAsteroid <= maxAsteroid)
+        {
+            spawnTime = spawnSecond;
+            for (int iii {0}; iii < 5; iii++)
+            {
+                asteroidList[reloadAsteroid] = {
+                    static_cast<float>(GetRandomValue(screenWidth, screenWidth + 100)),
+                    static_cast<float>(GetRandomValue(0, screenHeight - 50))
+                };
+                reloadAsteroid++;
+            }
+        } else {
+            spawnTime--;
+        }
+        // Caculate asteroid coordinates
+        for (int iii {0}; iii < maxAsteroid; iii++)
+        {
+            if (asteroidList[iii].x == 0) continue;
+            asteroidList[iii].x -= asteroidSpeed;
+            if (asteroidList[iii].x < 0) asteroidList[iii] = {0, 0};
+        }
+
+        // Reload the index of asteroidList to reuse
+        if (reloadAsteroid >= maxAsteroid)
+        {
+            reloadAsteroid = 0;
+        }
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -110,11 +145,21 @@ int main(void)
 
             DrawRectangle(player.x, player.y, player.width, player.height, BLUE);
 
+            DrawText(TextFormat("%i", asteroidList[0].x), 100, 100, 30, WHITE);
+            DrawText(TextFormat("%i", spawnTime), 100, 150, 30, WHITE);
+            DrawText(TextFormat("reloadAsteroid: %i", reloadAsteroid), 100, 250, 30, WHITE);
+
             // Draw bullet
             for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
             {
                 if (!(bulletList[iii].x == 0 && bulletList[iii].y == 0))
                 DrawRectangle(bulletList[iii].x, bulletList[iii].y, 20, 10, RED);
+            }
+            // Draw asteroid
+            for (int iii {0}; iii < maxAsteroid; iii++)
+            {
+                if (asteroidList[iii].x == 0) continue;
+                DrawRectangle(asteroidList[iii].x, asteroidList[iii].y, 20, 20, YELLOW);
             }
 
             DrawFPS(10, 10);
