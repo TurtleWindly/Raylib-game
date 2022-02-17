@@ -11,6 +11,13 @@ int main(void)
     const int screenWidth = 960;
     const int screenHeight = 720;
 
+    // End game
+    bool isEnd {false};
+    bool isRestart {false};
+
+    // Score
+    int scores {0};
+
     SetConfigFlags(FLAG_MSAA_4X_HINT);  // NOTE: Try to enable MSAA 4X
 
     InitWindow(screenWidth, screenHeight, "Space Invader");
@@ -47,7 +54,7 @@ int main(void)
 
     // Music
     Music music = LoadMusicStream("res/audio/mini1111.xm");
-    music.looping = false;
+    music.looping = true;
 
     PlayMusicStream(music);
 
@@ -62,13 +69,18 @@ int main(void)
 
         UpdateMusicStream(music);
 
+    if (!isEnd) {
+
+        // Score
+        scores++;
+
         moveHorizontal = (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) - (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A));
         moveVertical = (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) - (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) ;
 
         // Get player Input
         movementInput.x = moveHorizontal;
         movementInput.y = moveVertical;
-        isShoot = IsKeyPressed(KEY_E) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        isShoot = IsKeyPressed(KEY_E) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
         // Normalize the Input Vector2
         if (std::abs(movementInput.x) + std::abs(movementInput.y) == 2)
@@ -137,17 +149,61 @@ int main(void)
             reloadAsteroid = 0;
         }
 
+        // Check collision of player with asteroids
+        for (int iii {0}; iii < maxAsteroid; iii++)
+        {
+            if (CheckCollisionRecs(player, {asteroidList[iii].x, asteroidList[iii].y, 20, 20}) && asteroidList[iii].x != 0)
+            {
+                isEnd = true;
+            }
+        }
+
+        // Check collision of bullet with asteroids
+        for (int iii {0}; iii < maxBulletList; iii++)
+        {
+            for (int uuu {0}; uuu < maxAsteroid; uuu++)
+            {
+                if (CheckCollisionRecs({bulletList[iii].x, bulletList[iii].y, 20, 10}, {asteroidList[uuu].x, asteroidList[uuu].y, 20, 20}))
+                {
+                    bulletList[iii] = {0, 0};
+                    asteroidList[uuu] = {0, 0};
+                }
+            }
+        }} // isEnd scene
+    else {
+        isRestart = IsKeyPressed(KEY_R);
+        if (isRestart)
+        {
+            // Clean bullets and asteroids
+            for (int iii {0}; iii < maxBulletList; iii++)
+            {
+                bulletList[iii] = {0, 0};
+            }
+            for (int iii {0}; iii < maxAsteroid; iii++)
+            {
+                asteroidList[iii] = {0, 0};
+            }
+            // Reset player position
+            player = {static_cast<float>(screenWidth/2) - 100, static_cast<float>(screenHeight/2) - 100, 25, 25};
+
+            isRestart = false;
+            isEnd = false;
+            scores = 0;
+        }
+    }
+
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
             ClearBackground(BLACK);
 
-            DrawRectangle(player.x, player.y, player.width, player.height, BLUE);
+        if (!isEnd) {
 
-            DrawText(TextFormat("%i", asteroidList[0].x), 100, 100, 30, WHITE);
-            DrawText(TextFormat("%i", spawnTime), 100, 150, 30, WHITE);
-            DrawText(TextFormat("reloadAsteroid: %i", reloadAsteroid), 100, 250, 30, WHITE);
+            DrawRectangle(player.x, player.y, player.width, player.height, WHITE);
+
+            // Score
+            DrawText(TextFormat("Scores: %i", scores), 400, 50, 20, RAYWHITE);
 
             // Draw bullet
             for (int iii {0}; iii < static_cast<int>(bulletList.size()); iii++)
@@ -160,6 +216,14 @@ int main(void)
             {
                 if (asteroidList[iii].x == 0) continue;
                 DrawRectangle(asteroidList[iii].x, asteroidList[iii].y, 20, 20, YELLOW);
+            }
+        } // isEndScene
+
+            if (isEnd)
+            {
+                DrawText("You lose!", 250, 250, 100, RED);
+                DrawText("Press R to play again", 200, 350, 50, WHITE);
+                DrawText(TextFormat("Your scores are: %i", scores), 250, 450, 40, WHITE);
             }
 
             DrawFPS(10, 10);
